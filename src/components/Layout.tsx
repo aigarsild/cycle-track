@@ -1,4 +1,5 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
+import type { ReactNode } from 'react';
 import { AppBar, Toolbar, Typography, Button, Box, Container, CssBaseline } from '@mui/material';
 import Link from 'next/link';
 
