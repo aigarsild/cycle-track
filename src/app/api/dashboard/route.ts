@@ -27,15 +27,54 @@ export async function GET(request: NextRequest) {
       new Date(ticket.created_at) >= fromDate
     );
 
-    // Calculate statistics
-    const todoCount = filteredTickets.filter(ticket => ticket.status === 'todo').length;
-    const inProgressCount = filteredTickets.filter(ticket => ticket.status === 'in-progress').length;
-    const waitingForPartsCount = filteredTickets.filter(ticket => ticket.status === 'waiting-for-parts').length;
-    const doneCount = filteredTickets.filter(ticket => ticket.status === 'done').length;
+    // Count tickets in different statuses
+    const { data: todoData } = await supabase
+      .from('service_tickets')
+      .select('id')
+      .eq('status', 'todo')
+      .gte('created_at', fromDateStr);
+    
+    const { data: inProgressData } = await supabase
+      .from('service_tickets')
+      .select('id')
+      .eq('status', 'in-progress')
+      .gte('created_at', fromDateStr);
+    
+    const { data: waitingForPartsData } = await supabase
+      .from('service_tickets')
+      .select('id')
+      .eq('status', 'waiting-for-parts')
+      .gte('created_at', fromDateStr);
+    
+    const { data: doneData } = await supabase
+      .from('service_tickets')
+      .select('id')
+      .eq('status', 'done')
+      .gte('created_at', fromDateStr);
+
+    // Add query for archived tickets
+    const { data: archivedData } = await supabase
+      .from('service_tickets')
+      .select('id')
+      .eq('status', 'archived')
+      .gte('created_at', fromDateStr);
+    
+    // Get completed tickets with revenue information
+    const { data: revenueData } = await supabase
+      .from('service_tickets')
+      .select('total_cost')
+      .eq('status', 'done')
+      .gte('created_at', fromDateStr);
+    
+    // Set counts and calculate totals
+    const todoCount = todoData?.length || 0;
+    const inProgressCount = inProgressData?.length || 0;
+    const waitingForPartsCount = waitingForPartsData?.length || 0;
+    const doneCount = doneData?.length || 0;
+    const archivedCount = archivedData?.length || 0;
 
     // Calculate revenue from completed tickets
-    const totalRevenue = filteredTickets
-      .filter(ticket => ticket.status === 'done' && ticket.total_cost)
+    const totalRevenue = (revenueData || [])
       .reduce((sum, ticket) => sum + (ticket.total_cost || 0), 0);
 
     // Estimate revenue from tickets that are not yet completed
@@ -48,6 +87,7 @@ export async function GET(request: NextRequest) {
       inProgressCount,
       waitingForPartsCount,
       doneCount,
+      archivedCount,
       totalRevenue,
       estimatedRevenue
     };
