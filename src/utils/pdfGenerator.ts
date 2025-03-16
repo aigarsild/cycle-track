@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { ServiceTicket, Product } from '@/types';
+import type { ServiceTicket, Product } from '@/types';
 
 export const generateServiceReceipt = (ticket: ServiceTicket): string => {
   const doc = new jsPDF();
