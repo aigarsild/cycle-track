@@ -1,1 +1,41 @@
-{\n  "name": "cycle-track",\n  "version": "0.1.0",\n  "private": true,\n  "scripts": {\n    "dev": "next dev",\n    "build": "next build",\n    "start": "next start",\n    "lint": "next lint"\n  },\n  "dependencies": {\n    "next": "14.2.0",\n    "react": "^18",\n    "react-dom": "^18"\n  },\n  "devDependencies": {\n    "@types/node": "^20",\n    "@types/react": "^18",\n    "@types/react-dom": "^18",\n    "autoprefixer": "^10.0.1",\n    "eslint": "^8",\n    "eslint-config-next": "14.2.0",\n    "postcss": "^8",\n    "tailwindcss": "^3.3.0",\n    "typescript": "^5"\n  }\n}
+{
+  "name": "bike-shop-service-management",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.4",
+    "@hello-pangea/dnd": "^18.0.1",
+    "@mui/icons-material": "^5.15.12",
+    "@mui/material": "^5.15.12",
+    "@supabase/supabase-js": "^2.39.7",
+    "jspdf": "^2.5.1",
+    "klaviyo-node": "^1.0.8",
+    "next": "14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-pdf": "^7.7.0"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^14.2.0",
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3"
+  }
+}

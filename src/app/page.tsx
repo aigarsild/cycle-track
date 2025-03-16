@@ -1,1 +1,65 @@
-export default function Home() {\n  return (\n    <main className=\"flex min-h-screen flex-col items-center justify-between p-24\">\n      <div className=\"z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex\">\n        <p className=\"fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30\">\n          Welcome to Cycle Track\n        </p>\n      </div>\n\n      <div className=\"relative flex place-items-center\">\n        <h1 className=\"text-4xl font-bold\">Cycle Track</h1>\n      </div>\n\n      <div className=\"mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-3 lg:text-left\">\n        <div className=\"group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30\">\n          <h2 className=\"mb-3 text-2xl font-semibold\">\n            Track Rides\n          </h2>\n          <p className=\"m-0 max-w-[30ch] text-sm opacity-50\">\n            Record your cycling activities and track your progress.  \n          </p>\n        </div>\n\n        <div className=\"group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30\">\n          <h2 className=\"mb-3 text-2xl font-semibold\">\n            Analyze Performance\n          </h2>\n          <p className=\"m-0 max-w-[30ch] text-sm opacity-50\">\n            View detailed statistics and insights about your cycling performance.\n          </p>\n        </div>\n\n        <div className=\"group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30\">\n          <h2 className=\"mb-3 text-2xl font-semibold\">\n            Set Goals\n          </h2>\n          <p className=\"m-0 max-w-[30ch] text-sm opacity-50\">\n            Create and track cycling goals to improve your performance.\n          </p>\n        </div>\n      </div>\n    </main>\n  );\n}\n
+'use client';
+
+export default function Home() {
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-blue-600 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Welcome to Cycle Track</h1>
+          <p className="text-xl mb-8 max-w-3xl mx-auto">
+            The comprehensive management solution for bicycle service shops
+          </p>
+          <div className="flex justify-center gap-4">
+            <a href="/dashboard" className="bg-white text-blue-600 px-6 py-3 rounded-md font-medium hover:bg-blue-50 transition-colors">
+              Dashboard
+            </a>
+            <a href="/service-inquiry" className="bg-transparent border-2 border-white px-6 py-3 rounded-md font-medium hover:bg-white hover:text-blue-600 transition-colors">
+              New Service Request
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Manage Your Bike Shop Efficiently</h2>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <div className="text-blue-600 text-4xl mb-4">📋</div>
+              <h3 className="text-xl font-semibold mb-2">Service Tracking</h3>
+              <p className="text-gray-600">Track all bike service requests from intake to completion with our intuitive workshop board.</p>
+            </div>
+            
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <div className="text-blue-600 text-4xl mb-4">📦</div>
+              <h3 className="text-xl font-semibold mb-2">Inventory Management</h3>
+              <p className="text-gray-600">Keep track of parts, accessories, and tools with real-time inventory updates and low stock alerts.</p>
+            </div>
+            
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <div className="text-blue-600 text-4xl mb-4">👥</div>
+              <h3 className="text-xl font-semibold mb-2">Customer Database</h3>
+              <p className="text-gray-600">Build lasting relationships with comprehensive customer profiles and service history tracking.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-gray-100">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to streamline your bike shop operations?</h2>
+          <p className="text-xl mb-8 max-w-3xl mx-auto text-gray-600">
+            Start using Cycle Track today and transform how you manage your bicycle service business.
+          </p>
+          <a href="/dashboard" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-md font-medium hover:bg-blue-700 transition-colors">
+            Get Started
+          </a>
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -1,1 +1,8 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.js\n.yarn/install-state.gz\n\n# testing\n/coverage\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n\n# misc\n.DS_Store\n*.pem\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n\n# local env files\n.env*.local\n\n# vercel\n.vercel\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.\n\n# dependencies\n/node_modules\n/.pnp\n.pnp.js\n.yarn/install-state.gz\n\n# testing\n/coverage\n\n# next.js\n/.next/\n/out/\n\n# production\n/build\n/dist\n\n# misc\n.DS_Store\n*.pem\nThumbs.db\n\n# debug\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n.pnpm-debug.log*\n\n# local env files\n.env*.local\n.env\n\n# vercel\n.vercel\n\n# turbo\n.turbo\n\n# typescript\n*.tsbuildinfo\nnext-env.d.ts\n\n# editor\n.vscode/*\n!.vscode/extensions.json\n!.vscode/settings.json\n.idea\n.cursor
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+.cursor
