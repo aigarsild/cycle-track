@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
   Typography, 
@@ -38,7 +38,7 @@ import {
   Upload as UploadIcon
 } from '@mui/icons-material';
 import { supabase } from '@/lib/supabase';
-import { Product } from '@/types';
+import type { Product } from '@/types';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -85,32 +85,34 @@ export default function Products() {
     message: '',
     severity: 'success' as 'success' | 'error'
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  // Define fetchProducts before using it in useEffect
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/products');
+      const data = await response.json();
+      
+      if (data.success) {
+        setProducts(data.data);
+      } else {
+        setError(data.error || 'Failed to fetch products');
+      }
+    } catch (error: any) {
+      console.error('Error fetching products:', error);
+      setError(error.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
   useEffect(() => {
     fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-
-      setProducts(data);
-      
-      // Extract unique categories
-      const uniqueCategories = Array.from(
-        new Set(data.map((product: Product) => product.category))
-      );
-      setCategories(uniqueCategories as string[]);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      showSnackbar('Failed to load products', 'error');
-    }
-  };
+  }, [fetchProducts]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

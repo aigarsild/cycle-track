@@ -1,0 +1,6 @@
+{
+  "/api/service-tickets/route": "app/api/service-tickets/route.js",
+  "/receipt-builder/page": "app/receipt-builder/page.js",
+  "/api/mechanics/route": "app/api/mechanics/route.js",
+  "/workshop/page": "app/workshop/page.js"
+}

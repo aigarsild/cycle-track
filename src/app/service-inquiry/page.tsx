@@ -134,8 +134,8 @@ export default function ServiceInquiry() {
               <h3 className="font-medium mb-2">What happens next?</h3>
               <ol className="list-decimal list-inside text-gray-700 space-y-2">
                 <li>Our service team will review your request</li>
-                <li>You'll receive a confirmation email with your service details</li>
-                <li>We'll contact you if we need additional information</li>
+                <li>You&apos;ll receive a confirmation email with your service details</li>
+                <li>We&apos;ll contact you if we need additional information</li>
                 <li>Your bike service will be scheduled</li>
               </ol>
             </div>

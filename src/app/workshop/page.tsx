@@ -165,14 +165,20 @@ export default function Workshop() {
     };
     
     fetchMechanics();
-  }, [isClient, isSupabaseConfigured]);
+  }, [isClient]);
 
   useEffect(() => {
     setIsClient(true);
     fetchServiceTickets();
   }, [fetchServiceTickets]);
 
-  const handleMoveTicket = async (ticketId: string, sourceStatus: ServiceStatus, destinationStatus: ServiceStatus) => {
+  // Extract the column IDs to stable variables for useCallback dependencies
+  const todoColumnId = 'todo';
+  const inProgressColumnId = 'in-progress';
+  const waitingColumnId = 'waiting-for-parts';
+  const doneColumnId = 'done';
+
+  const handleMoveTicket = useCallback(async (ticketId: string, sourceStatus: ServiceStatus, destinationStatus: ServiceStatus) => {
     try {
       setError('');
       
@@ -220,7 +226,7 @@ export default function Workshop() {
       setError(err.message || 'Failed to update ticket status');
       return false;
     }
-  };
+  }, []);  // No column dependencies needed here
 
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
