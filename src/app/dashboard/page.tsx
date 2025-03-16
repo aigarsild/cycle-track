@@ -5,7 +5,7 @@ import type { DashboardStats } from '@/types';
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('30'); // Default to 30 days
-  const [stats, setStats] = useState<DashboardStats>({
+  const [stats, setStats] = useState({
     todoCount: 0,
     inProgressCount: 0,
     waitingForPartsCount: 0,
@@ -13,7 +13,7 @@ export default function Dashboard() {
     archivedCount: 0,
     totalRevenue: 0,
     estimatedRevenue: 0
-  });
+  } as DashboardStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +92,7 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500 mb-1">Waiting for Parts</p>
                 <p className="text-2xl font-bold">{stats.waitingForPartsCount}</p>
               </div>
-              <div className="bg-gray-100 p-4 rounded">
+              <div className="bg-green-100 p-4 rounded">
                 <p className="text-sm text-gray-500 mb-1">Completed</p>
                 <p className="text-2xl font-bold">{stats.doneCount}</p>
               </div>
