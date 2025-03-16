@@ -68,6 +68,7 @@ export interface DashboardStats {
   inProgressCount: number;
   waitingForPartsCount: number;
   doneCount: number;
+  archivedCount: number;
   totalRevenue: number;
   estimatedRevenue: number;
 } 
