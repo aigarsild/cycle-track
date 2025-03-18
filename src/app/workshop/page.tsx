@@ -35,7 +35,8 @@ type ColumnData = {
   tickets: ServiceTicket[];
 };
 
-type ColumnId = ServiceStatus;
+type WorkshopStatus = 'todo' | 'in-progress' | 'waiting-for-parts' | 'done';
+type ColumnId = WorkshopStatus;
 
 type ColumnsState = {
   [key in ColumnId]: ColumnData;
@@ -61,11 +62,6 @@ export default function Workshop() {
     'done': {
       id: 'done',
       title: 'Done',
-      tickets: []
-    },
-    'archived': {
-      id: 'archived',
-      title: 'Archived',
       tickets: []
     }
   });
@@ -104,7 +100,7 @@ export default function Workshop() {
       
       const tickets = data.tickets as ServiceTicket[];
       
-      // Group tickets by status
+      // Group tickets by status, excluding archived ones
       const newColumns: ColumnsState = {
         'todo': {
           id: 'todo',
@@ -125,11 +121,6 @@ export default function Workshop() {
           id: 'done',
           title: columns.done.title,
           tickets: tickets.filter(ticket => ticket.status === 'done')
-        },
-        'archived': {
-          id: 'archived',
-          title: 'Archived',
-          tickets: tickets.filter(ticket => ticket.status === 'archived')
         }
       };
       
@@ -193,6 +184,19 @@ export default function Workshop() {
       if (destinationStatus === 'done') {
         updates.completionDate = new Date().toISOString();
       }
+
+      // Add a status change comment
+      const now = new Date();
+      const formattedDate = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} / ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const userName = "Admin"; // Replace with actual user name when available
+      const actionMessage = `moved the card ${destinationStatus}`;
+      const statusChangeComment = `${userName}|${actionMessage}|${formattedDate}`;
+      
+      // Add the comment to the updates
+      updates.newComment = statusChangeComment;
+      
+      // If moving to archived, redirect to the archived page after successful update
+      const isArchiving = destinationStatus === 'archived';
       
       const response = await fetch('/api/service-tickets/update-status', {
         method: 'POST',
@@ -216,6 +220,12 @@ export default function Workshop() {
           console.error('Failed to parse error response as JSON:', jsonError);
         }
         throw new Error(errorMessage);
+      }
+      
+      // If archiving was successful, redirect to archived page
+      if (isArchiving && window.confirm('Ticket has been archived. Would you like to view archived tickets?')) {
+        window.location.href = '/workshop/archived';
+        return true;
       }
       
       // Return success to indicate the backend operation succeeded
@@ -329,46 +339,35 @@ export default function Workshop() {
     try {
       setSubmittingComment(true);
       
-      // Add the comment to the ticket
-      const updatedComments = selectedTicket.comments ? 
-        [...selectedTicket.comments, comment] : 
-        [comment];
+      // Format the comment with author and timestamp
+      const now = new Date();
+      const formattedDate = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} / ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const userName = "Admin"; // Replace with actual user name when available
+      const formattedComment = `${comment}|${userName}|${formattedDate}`;
       
-      // Update in the backend
-      const response = await fetch('/api/service-tickets', {
-        method: 'PATCH',
+      const response = await fetch('/api/service-tickets/comment', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: selectedTicket.id,
-          comments: updatedComments
+          ticketId: selectedTicket.id,
+          comment: formattedComment
         }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add comment');
+        throw new Error('Failed to add comment');
       }
       
-      // Update locally
-      const updatedTicket = {
-        ...selectedTicket,
-        comments: updatedComments
-      };
-      setSelectedTicket(updatedTicket);
-      
-      // Update in the column state
-      const columnId = selectedTicket.status as ColumnId;
-      const newColumns = { ...columns };
-      const ticketIndex = newColumns[columnId].tickets.findIndex(t => t.id === selectedTicket.id);
-      
-      if (ticketIndex !== -1) {
-        newColumns[columnId].tickets[ticketIndex] = updatedTicket;
-        setColumns(newColumns);
+      // Update local state
+      if (selectedTicket.comments) {
+        selectedTicket.comments.push(formattedComment);
+      } else {
+        selectedTicket.comments = [formattedComment];
       }
       
-      // Clear the comment field
+      // Clear comment input
       setComment('');
       
     } catch (error) {
@@ -382,20 +381,20 @@ export default function Workshop() {
   const handleTicketClick = (ticket: ServiceTicket) => {
     setSelectedTicket(ticket);
     setShowDetails(true);
-    setComment('');
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
     });
   };
 
+  // Format phone number
   const formatPhone = (phone: string) => {
-    // Simple format for display
-    return phone;
+    return phone.replace(/(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4');
   };
 
   // Don't render the DragDropContext until the component is hydrated on the client
@@ -427,12 +426,15 @@ export default function Workshop() {
     }
   };
 
-  const handleGenerateReceipt = () => {
-    if (!selectedTicket) return;
-    
-    // Generate and open a simple receipt
-    const receiptUrl = `/api/receipt/generate?ticketId=${selectedTicket.id}`;
-    window.open(receiptUrl, '_blank');
+  const handleGenerateReceipt = (ticketId: string) => {
+    // Get the ticket
+    const ticket = Object.values(columns)
+      .flatMap(column => column.tickets)
+      .find(t => t.id === ticketId);
+      
+    if (ticket) {
+      window.open(`/receipt-builder?ticketId=${ticket.id}`, '_blank');
+    }
   };
 
   const handleCompleteService = () => {
@@ -490,457 +492,307 @@ export default function Workshop() {
   };
 
   return (
-    <div className="p-4">
+    <div className="flex flex-col min-h-screen p-4 bg-gray-50">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Workshop</h1>
-        <div className="flex items-center gap-2">
-          {!isSupabaseConfigured() && (
-            <div className="text-amber-600 text-sm mr-2">
-              <span className="font-medium">Using demo data</span>
-            </div>
-          )}
-          <button 
-            onClick={fetchServiceTickets}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold text-navy">Workshop Management</h1>
+        <a 
+          href="/workshop/archived" 
+          className="bg-pink text-white px-4 py-2 rounded-md hover:bg-pink-dark inline-flex items-center"
+        >
+          <span>View Archived Tickets</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        </a>
       </div>
-      
-      {loading ? (
-        <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      ) : (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {Object.values(columns).map(column => (
-              <div key={column.id} className="bg-white p-4 rounded-lg shadow">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="font-semibold text-lg">
-                    {column.title}
-                  </h2>
-                  <span className="bg-gray-200 text-gray-800 text-xs font-medium rounded-full px-2.5 py-0.5">
-                    {column.tickets.length}
-                  </span>
+
+      <div className="flex-1 w-full">
+        {isClient && (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+              {Object.values(columns).map((column) => (
+                <div key={column.id} className="col-span-1">
+                  <TicketColumn
+                    id={column.id}
+                    title={column.title}
+                    tickets={column.tickets}
+                    onTicketClick={handleTicketClick}
+                    onGenerateReceipt={handleGenerateReceipt}
+                  />
                 </div>
-                
-                <Droppable droppableId={column.id}>
-                  {(provided, snapshot) => (
-                    <div 
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`min-h-[400px] ${snapshot.isDraggingOver ? 'bg-blue-50' : ''}`}
-                    >
-                      {column.tickets.length === 0 ? (
-                        <div className="flex items-center justify-center h-24 border border-dashed border-gray-300 rounded-md">
-                          <p className="text-gray-400 text-sm">No tickets</p>
-                        </div>
-                      ) : (
-                        column.tickets.map((ticket, index) => (
-                          <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div 
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`bg-gray-50 p-3 rounded mb-2 border ${
-                                  snapshot.isDragging 
-                                    ? 'border-blue-400 shadow-lg' 
-                                    : 'border-gray-200'
-                                } hover:bg-gray-100 cursor-grab active:cursor-grabbing`}
-                                onClick={() => handleTicketClick(ticket)}
-                              >
-                                <div className="text-sm font-medium mb-1">
-                                  {ticket.serviceType} - {ticket.equipmentBrand}
-                                </div>
-                                <div className="text-xs text-gray-500 mb-1">
-                                  <div className="flex justify-between">
-                                    <div>Customer: {ticket.customer?.name || 'Unknown'}</div>
-                                    <div>{ticket.customer?.phone || 'No phone'}</div>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-1">
-                                  Date: {formatDate(ticket.createdAt)}
-                                </div>
-                                {ticket.comments && ticket.comments.length > 0 && (
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    {ticket.comments.length} comment{ticket.comments.length !== 1 ? 's' : ''}
-                                  </div>
-                                )}
-                                <div className="flex flex-wrap mt-2 gap-1">
-                                  {/* Receipt button for all tickets */}
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const receiptUrl = `/api/receipt/generate?ticketId=${ticket.id}`;
-                                      window.open(receiptUrl, '_blank');
-                                    }}
-                                    className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded flex items-center"
-                                    title="Generate Receipt"
-                                  >
-                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                    </svg>
-                                    Receipt
-                                  </button>
-                                  
-                                  {column.id !== 'todo' && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMoveTicket(ticket.id, column.id, 'todo');
-                                      }}
-                                      className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
-                                    >
-                                      ← To Do
-                                    </button>
-                                  )}
-                                  {column.id !== 'in-progress' && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMoveTicket(ticket.id, column.id, 'in-progress');
-                                      }}
-                                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded"
-                                    >
-                                      In Progress
-                                    </button>
-                                  )}
-                                  {column.id !== 'waiting-for-parts' && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMoveTicket(ticket.id, column.id, 'waiting-for-parts');
-                                      }}
-                                      className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-2 py-1 rounded"
-                                    >
-                                      Waiting
-                                    </button>
-                                  )}
-                                  {column.id !== 'done' && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMoveTicket(ticket.id, column.id, 'done');
-                                      }}
-                                      className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded"
-                                    >
-                                      Done
-                                    </button>
-                                  )}
-                                  {column.id === 'done' && (
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (window.confirm('Archive this ticket? Archived tickets will be stored for record keeping.')) {
-                                          handleMoveTicket(ticket.id, column.id, 'archived');
-                                        }
-                                      }}
-                                      className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded"
-                                    >
-                                      Archive
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))
-                      )}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            ))}
-          </div>
-        </DragDropContext>
-      )}
-      
+              ))}
+            </div>
+          </DragDropContext>
+        )}
+      </div>
+
       {/* Ticket Details Modal */}
       {showDetails && selectedTicket && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-dark bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold">Ticket #{selectedTicket.id}</h2>
+              <div className="flex justify-between items-start mb-1">
+                <h2 className="text-2xl font-bold text-navy">{selectedTicket.equipmentBrand}</h2>
                 <button
-                  onClick={() => {
-                    // Debug log receipt information
-                    console.log('Receipt data:', selectedTicket.receipt);
-                    setShowDetails(false);
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowDetails(false)}
+                  className="text-dark hover:text-dark-light"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                   </svg>
                 </button>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <p className="text-dark-light mb-6">Recipient: {selectedTicket.recipient}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {/* Customer details - First column */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Customer Details</h3>
-                  <p><span className="font-medium">Name:</span> {selectedTicket.customer.name}</p>
-                  <p><span className="font-medium">Email:</span> {selectedTicket.customer.email}</p>
-                  <p><span className="font-medium">Phone:</span> {selectedTicket.customer.phone}</p>
+                  <h3 className="text-xl font-semibold mb-4 text-dark">Customer details</h3>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Name:</span> {selectedTicket.customer.name}</p>
+                    <p><span className="font-medium">Email:</span> {selectedTicket.customer.email}</p>
+                    <p><span className="font-medium">Phone:</span> {formatPhone(selectedTicket.customer.phone)}</p>
+                  </div>
                 </div>
+                
+                {/* Service details - Second column */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Service Details</h3>
-                  <p><span className="font-medium">Equipment:</span> {selectedTicket.equipmentBrand}</p>
-                  <p><span className="font-medium">Service Type:</span> {selectedTicket.serviceType}</p>
-                  <p><span className="font-medium">Status:</span> {selectedTicket.status}</p>
-                  <p><span className="font-medium">Created:</span> {new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
-                  {selectedTicket.completionDate && (
-                    <p><span className="font-medium">Completed:</span> {new Date(selectedTicket.completionDate).toLocaleDateString()}</p>
-                  )}
-                  {!selectedTicket.completionDate && selectedTicket.status === 'done' && (
-                    <p><span className="font-medium">Completed:</span> {new Date(selectedTicket.updatedAt).toLocaleDateString()}</p>
-                  )}
+                  <h3 className="text-xl font-semibold mb-4 text-dark">Service details</h3>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Equipment:</span> {selectedTicket.equipmentBrand}</p>
+                    <p><span className="font-medium">Service type:</span> {selectedTicket.serviceType}</p>
+                    <p><span className="font-medium">Created:</span> {formatDate(selectedTicket.createdAt)}</p>
+                  </div>
                 </div>
-              </div>
-              
-              {selectedTicket.additionalDetails && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Additional Details</h3>
-                  <p className="whitespace-pre-wrap">{selectedTicket.additionalDetails}</p>
-                </div>
-              )}
-              
-              <CommentSection 
-                ticketId={selectedTicket.id} 
-                initialComments={selectedTicket.comments || []} 
-              />
-
-              {/* Receipt information section - only show if receipt exists */}
-              {selectedTicket.receipt && (
-                <div className="mt-6 border-t pt-4">
-                  <h3 className="text-lg font-semibold mb-2">Receipt Information</h3>
-                  
-                  {selectedTicket.receipt && selectedTicket.receipt.items && selectedTicket.receipt.items.length > 0 ? (
-                    <>
-                      <p><span className="font-medium">Total Amount:</span> ${selectedTicket.receipt.totalAmount?.toFixed(2)}</p>
-                      <p><span className="font-medium">Generated:</span> {selectedTicket.receipt.generatedAt && new Date(selectedTicket.receipt.generatedAt).toLocaleString()}</p>
-                      
-                      <div className="flex gap-2 mt-3">
-                        {selectedTicket.receipt.pdfUrl && (
-                          <a 
-                            href={selectedTicket.receipt.pdfUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-md hover:bg-blue-200"
-                          >
-                            View Receipt PDF
-                          </a>
-                        )}
-                        
-                        <button
-                          onClick={() => {
-                            // Build URL with all the ticket information for regenerating the receipt
-                            const url = `/receipt-builder?ticketId=${selectedTicket.id}&customerName=${encodeURIComponent(selectedTicket.customer.name)}&customerEmail=${encodeURIComponent(selectedTicket.customer.email)}&customerPhone=${encodeURIComponent(selectedTicket.customer.phone)}&equipmentBrand=${encodeURIComponent(selectedTicket.equipmentBrand)}&serviceType=${encodeURIComponent(selectedTicket.serviceType)}`;
-                            window.location.href = url;
-                          }}
-                          className="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-md hover:bg-indigo-200"
-                        >
-                          Regenerate Receipt
-                        </button>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <h4 className="font-medium mb-2">Items:</h4>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-sm">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="py-2 text-left">Item</th>
-                                <th className="py-2 text-right">Qty</th>
-                                <th className="py-2 text-right">Price</th>
-                                <th className="py-2 text-right">Fee</th>
-                                <th className="py-2 text-right">Total</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedTicket.receipt.items.map((item, index) => (
-                                <tr key={index} className="border-b">
-                                  <td className="py-2">{item.name}</td>
-                                  <td className="py-2 text-right">{item.quantity}</td>
-                                  <td className="py-2 text-right">${item.price.toFixed(2)}</td>
-                                  <td className="py-2 text-right">${item.serviceFee.toFixed(2)}</td>
-                                  <td className="py-2 text-right">${((item.price * item.quantity) + (item.serviceFee * item.quantity)).toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-yellow-50 p-4 rounded-lg mb-4">
-                        <p className="text-yellow-700">
-                          Receipt data exists but is incomplete or in an unexpected format. See details below.
-                        </p>
-                      </div>
-                      <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-48">
-                        <pre className="text-xs">
-                          {JSON.stringify(selectedTicket.receipt, null, 2)}
-                        </pre>
-                      </div>
-                      <div className="mt-4">
-                        <button
-                          onClick={() => {
-                            // Build URL with all the ticket information for regenerating the receipt
-                            const url = `/receipt-builder?ticketId=${selectedTicket.id}&customerName=${encodeURIComponent(selectedTicket.customer.name)}&customerEmail=${encodeURIComponent(selectedTicket.customer.email)}&customerPhone=${encodeURIComponent(selectedTicket.customer.phone)}&equipmentBrand=${encodeURIComponent(selectedTicket.equipmentBrand)}&serviceType=${encodeURIComponent(selectedTicket.serviceType)}`;
-                            window.location.href = url;
-                          }}
-                          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-                        >
-                          Create New Receipt
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-              
-              <div className="mt-6 flex flex-wrap gap-2">
-                {/* Status update button */}
-                <button
-                  onClick={() => {
-                    // Show a dialog to update the ticket status
-                    const newStatus = window.prompt('Update status to:', selectedTicket.status);
-                    if (newStatus && ['todo', 'in-progress', 'waiting-for-parts', 'done'].includes(newStatus)) {
-                      handleMoveTicket(selectedTicket.id, selectedTicket.status, newStatus as ServiceStatus);
-                      setShowDetails(false);
-                    }
-                  }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                >
-                  Update Status
-                </button>
                 
-                {/* Archive button - only show for completed tickets */}
-                {selectedTicket.status === 'done' && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Archive this ticket? Archived tickets will be stored for record keeping.')) {
-                        handleMoveTicket(selectedTicket.id, selectedTicket.status, 'archived');
-                        setShowDetails(false);
-                      }
-                    }}
-                    className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
-                  >
-                    Archive Ticket
-                  </button>
-                )}
-                
-                {/* Generate receipt button - available for all tickets */}
-                <button
-                  onClick={() => {
-                    // Generate and open a simple receipt
-                    const receiptUrl = `/api/receipt/generate?ticketId=${selectedTicket.id}`;
-                    window.open(receiptUrl, '_blank');
-                  }}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                >
-                  Generate Receipt
-                </button>
-                
-                <button
-                  onClick={() => {
-                    // Build URL with all the ticket information
-                    const url = `/receipt-builder?ticketId=${selectedTicket.id}&customerName=${encodeURIComponent(selectedTicket.customer.name)}&customerEmail=${encodeURIComponent(selectedTicket.customer.email)}&customerPhone=${encodeURIComponent(selectedTicket.customer.phone)}&equipmentBrand=${encodeURIComponent(selectedTicket.equipmentBrand)}&serviceType=${encodeURIComponent(selectedTicket.serviceType)}`;
+                {/* Action buttons - Third column */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4 text-dark">Actions</h3>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => {
+                        window.open(`/receipt-builder?ticketId=${selectedTicket.id}`, '_blank');
+                      }}
+                      className="bg-green text-white px-4 py-2 rounded-full hover:bg-green-dark w-full text-center"
+                    >
+                      Generate receipt
+                    </button>
                     
-                    // Open in the same window
-                    window.location.href = url;
-                  }}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-                >
-                  Build Custom Receipt
-                </button>
-                
-                {/* Complete service button - only enabled for non-completed tickets */}
-                <button
-                  onClick={() => {
-                    if (selectedTicket.status !== 'done') {
-                      // Update the ticket status to done
-                      handleMoveTicket(selectedTicket.id, selectedTicket.status, 'done');
-                      setShowDetails(false);
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-md ${
-                    selectedTicket.status === 'done'
-                      ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-yellow-600 text-white hover:bg-yellow-700'
-                  }`}
-                  disabled={selectedTicket.status === 'done'}
-                >
-                  Complete Service
-                </button>
-              </div>
-
-              <div className="mt-4">
-                <h3 className="text-lg font-medium">Ticket Details</h3>
-                <div className="mt-2 space-y-2">
-                  <p><span className="font-medium">Customer:</span> {selectedTicket.customer.name}</p>
-                  <p><span className="font-medium">Phone:</span> {selectedTicket.customer.phone}</p>
-                  <p><span className="font-medium">Equipment:</span> {selectedTicket.equipmentBrand}</p>
-                  <p><span className="font-medium">Service Type:</span> {selectedTicket.serviceType}</p>
-                  <p><span className="font-medium">Status:</span> {selectedTicket.status}</p>
-                  <p><span className="font-medium">Created:</span> {formatDate(selectedTicket.createdAt)}</p>
-                  {selectedTicket.completionDate && (
-                    <p><span className="font-medium">Completed:</span> {new Date(selectedTicket.completionDate).toLocaleDateString()}</p>
-                  )}
-                  {!selectedTicket.completionDate && selectedTicket.status === 'done' && (
-                    <p><span className="font-medium">Completed:</span> {new Date(selectedTicket.updatedAt).toLocaleDateString()}</p>
-                  )}
-                  
-                  {/* Mechanic assignment section */}
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-medium mb-2">Assigned Mechanic</h4>
-                    <div className="flex items-end gap-2">
-                      <div className="flex-grow">
-                        <select
-                          className="w-full px-3 py-2 border rounded-md"
-                          value={selectedMechanic || selectedTicket.mechanic_id || ''}
-                          onChange={(e) => setSelectedMechanic(e.target.value)}
-                          disabled={loadingMechanics}
-                        >
-                          <option value="">-- Unassigned --</option>
-                          {mechanics.map(mech => (
-                            <option key={mech.id} value={mech.id}>
-                              {mech.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    <button
+                      onClick={() => {
+                        const receiptWindow = window.open(`/receipt-builder?ticketId=${selectedTicket.id}&mode=work`, '_blank');
+                        
+                        // Listen for messages from the receipt builder
+                        window.addEventListener('message', function receiptMessageHandler(event) {
+                          // Verify the message is from our domain
+                          if (event.origin !== window.location.origin) return;
+                          
+                          // Check if this is a receipt submission message
+                          if (event.data && event.data.type === 'work_receipt_submitted') {
+                            const receiptData = event.data.receiptData;
+                            
+                            // Format the service details as a special comment
+                            const now = new Date();
+                            const formattedDate = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} / ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                            const userName = "Admin"; // Replace with actual user name when available
+                            
+                            // Format the data as JSON and add a tag to identify it as service details
+                            const serviceDetailsJson = JSON.stringify(receiptData);
+                            const formattedComment = `[service_details]${serviceDetailsJson}|${userName}|${formattedDate}`;
+                            
+                            // Add the comment via API
+                            fetch('/api/service-tickets/comment', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                ticketId: selectedTicket.id,
+                                comment: formattedComment
+                              }),
+                            }).then(response => {
+                              if (response.ok) {
+                                // Update local state with the new comment
+                                if (selectedTicket.comments) {
+                                  selectedTicket.comments.push(formattedComment);
+                                  setSelectedTicket({...selectedTicket});
+                                } else {
+                                  const updatedTicket = {...selectedTicket, comments: [formattedComment]};
+                                  setSelectedTicket(updatedTicket);
+                                }
+                              } else {
+                                console.error('Failed to add service details comment');
+                              }
+                            }).catch(err => {
+                              console.error('Error adding service details comment:', err);
+                            });
+                            
+                            // Remove the event listener after handling the message
+                            window.removeEventListener('message', receiptMessageHandler);
+                          }
+                        });
+                      }}
+                      className="bg-green text-white px-4 py-2 rounded-full hover:bg-green-dark w-full text-center"
+                    >
+                      Create a work receipt
+                    </button>
+                    
+                    {selectedTicket.status === 'done' && (
                       <button
-                        onClick={handleAssignMechanic}
-                        disabled={!selectedMechanic || selectedMechanic === selectedTicket.mechanic_id}
-                        className={`px-4 py-2 rounded-md ${
-                          !selectedMechanic || selectedMechanic === selectedTicket.mechanic_id
-                            ? 'bg-gray-300 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
+                        onClick={() => {
+                          if (window.confirm('Archive this ticket? Archived tickets will be stored for record keeping.')) {
+                            handleMoveTicket(selectedTicket.id, selectedTicket.status, 'archived');
+                            setShowDetails(false);
+                          }
+                        }}
+                        className="bg-yellow text-dark px-4 py-2 rounded-full hover:bg-yellow-dark w-full text-center"
                       >
-                        Assign
+                        Archive
                       </button>
-                    </div>
-                    {selectedTicket.mechanic_id && (
-                      <p className="text-sm text-gray-700 mt-1">
-                        Current mechanic: {mechanics.find(m => m.id === selectedTicket.mechanic_id)?.name || 'Unknown'}
-                      </p>
                     )}
                   </div>
+                </div>
+              </div>
+              
+              {/* Additional details */}
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold mb-4 text-dark">Additional details</h3>
+                {selectedTicket.additionalDetails ? (
+                  <p className="whitespace-pre-wrap">{selectedTicket.additionalDetails}</p>
+                ) : (
+                  <p className="text-dark-light">No additional details provided.</p>
+                )}
+              </div>
+              
+              {/* Divider */}
+              <hr className="my-6 border-gray-200" />
+              
+              {/* Comments section */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4 text-dark">Comments</h3>
+                
+                {/* Comment input */}
+                <div className="flex items-center bg-gray-100 rounded-full mb-6 overflow-hidden pr-2">
+                  <input
+                    type="text"
+                    placeholder="Write a comment..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="flex-1 py-3 px-4 bg-transparent border-none focus:outline-none focus:ring-0"
+                  />
+                  <button
+                    onClick={handleAddComment}
+                    disabled={submittingComment || !comment.trim()}
+                    className={`text-dark font-medium px-4 py-1 rounded-full ${
+                      submittingComment || !comment.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'
+                    }`}
+                  >
+                    Add
+                  </button>
+                </div>
+                
+                {/* Comments list */}
+                <div className="space-y-6">
+                  {selectedTicket.comments && selectedTicket.comments.length > 0 ? (
+                    selectedTicket.comments.map((comment, index) => {
+                      // Check if it's a system message for status change
+                      if (comment.includes('moved the card')) {
+                        const [user, action, timestamp] = comment.split('|');
+                        return (
+                          <div key={index} className="text-dark-light">
+                            <p>{user} {action}</p>
+                            <p className="text-sm">{timestamp}</p>
+                          </div>
+                        );
+                      }
+                      
+                      // Regular comment
+                      const parts = comment.split('|');
+                      const commentText = parts[0] || '';
+                      const author = parts[1] || 'Unknown';
+                      const timestamp = parts[2] || '';
+                      
+                      // Check if this is a service details comment (contains service_details tag)
+                      if (commentText.includes('[service_details]')) {
+                        try {
+                          const serviceData = JSON.parse(commentText.replace('[service_details]', ''));
+                          return (
+                            <div key={index} className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-navy">{author}</span>
+                                <span className="text-dark-light text-sm">• {timestamp}</span>
+                              </div>
+                              <p className="text-dark mb-2">{author} finished the service</p>
+                              
+                              {/* Service details table */}
+                              <div className="border-t border-b border-gray-200 py-4">
+                                <h4 className="font-semibold mb-2">Service details</h4>
+                                <div className="grid grid-cols-3 gap-2 mb-2 text-dark-light text-sm">
+                                  <div>Product/service</div>
+                                  <div>Service fee</div>
+                                  <div>Product price</div>
+                                </div>
+                                
+                                {serviceData.items.map((item: any, i: number) => (
+                                  <div key={i} className="grid grid-cols-3 gap-2 py-2 border-t border-gray-100">
+                                    <div>{item.name}</div>
+                                    <div>{item.serviceFee} €</div>
+                                    <div>{item.productPrice} €</div>
+                                  </div>
+                                ))}
+                                
+                                {/* Totals */}
+                                <div className="grid grid-cols-2 gap-2 mt-4 pt-2 border-t border-gray-200">
+                                  <div className="text-right">Service all</div>
+                                  <div>{serviceData.serviceFeeTotal} €</div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="text-right">Product all</div>
+                                  <div>{serviceData.productPriceTotal} €</div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 font-semibold">
+                                  <div className="text-right">All together:</div>
+                                  <div>{serviceData.total} €</div>
+                                </div>
+                              </div>
+                              
+                              {/* Notes from mechanic */}
+                              {serviceData.notes && (
+                                <div className="mt-2">
+                                  <h4 className="font-semibold mb-1">Notes from mechanic:</h4>
+                                  <p className="text-dark">{serviceData.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        } catch (e) {
+                          console.error('Failed to parse service details', e);
+                          return (
+                            <div key={index} className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-navy">{author}</span>
+                                <span className="text-dark-light text-sm">• {timestamp}</span>
+                              </div>
+                              <p className="text-dark">{commentText.replace('[service_details]', '')}</p>
+                            </div>
+                          );
+                        }
+                      }
+                      
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-navy">{author}</span>
+                            <span className="text-dark-light text-sm">• {timestamp}</span>
+                          </div>
+                          <p className="text-dark">{commentText}</p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-dark-light">No comments yet.</p>
+                  )}
                 </div>
               </div>
             </div>

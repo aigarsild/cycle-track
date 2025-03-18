@@ -290,6 +290,37 @@ export default function ReceiptBuilderContent() {
     // If this is a ticket, save the receipt to the ticket
     if (ticketId) {
       await saveReceiptToTicket(pdfUrl);
+      
+      // Check if this is a work receipt mode (from workshop page)
+      const mode = searchParams.get('mode');
+      if (mode === 'work') {
+        // Prepare the data to send back to the workshop page
+        const serviceData = {
+          items: receiptItems.map(item => ({
+            name: item.name,
+            serviceFee: item.serviceFee,
+            productPrice: item.price * item.quantity
+          })),
+          serviceFeeTotal: serviceFeeTotal,
+          productPriceTotal: productTotal,
+          total: grandTotal,
+          notes: mechanic ? `Service performed by ${mechanic}` : '',
+          date: new Date().toISOString()
+        };
+        
+        // Send the data back to the opener window
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({
+            type: 'work_receipt_submitted',
+            receiptData: serviceData
+          }, window.location.origin);
+          
+          // Close this window after sending the data
+          setTimeout(() => {
+            window.close();
+          }, 1500);
+        }
+      }
     }
     
     // Open the PDF in a new tab
