@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const shopPhone = searchParams.get('shopPhone') || '56 86 17 63';
     const shopEmail = searchParams.get('shopEmail') || 'tere@kauplusrattapood.ee';
     const shopAddress = searchParams.get('shopAddress') || 'Vae 3a, Laagri, Saue vald';
+    const customLogo = searchParams.get('logo');
     
     // Create a PDF with 80mm width
     const doc = new jsPDF({
@@ -52,8 +53,20 @@ export async function GET(request: NextRequest) {
     // Set initial position
     let y = 15;
     
-    // Header with bicycle logo
-    drawBicycleLogo(25, y, 10);
+    // Add header with logo
+    if (customLogo) {
+      try {
+        // Add custom logo from base64 string
+        doc.addImage(customLogo, 'JPEG', 30, y - 10, 20, 20);
+      } catch (err) {
+        console.error('Error adding custom logo to PDF:', err);
+        // Fallback to bicycle logo if custom logo fails
+        drawBicycleLogo(25, y, 10);
+      }
+    } else {
+      // Use default bicycle logo
+      drawBicycleLogo(25, y, 10);
+    }
     
     // Split shop name into two parts if it contains a space
     let shopNameParts = shopName.split(' ');
@@ -149,8 +162,19 @@ export async function GET(request: NextRequest) {
     doc.text(shopAddress, 40, y, { align: 'center' });
     y += 15;
     
-    // Bicycle logo at bottom
-    drawBicycleLogo(35, y, 10);
+    // Footer logo
+    if (customLogo) {
+      try {
+        // Add custom logo from base64 string
+        doc.addImage(customLogo, 'JPEG', 30, y - 5, 20, 20);
+      } catch (err) {
+        // Fallback to bicycle logo if custom logo fails
+        drawBicycleLogo(35, y, 10);
+      }
+    } else {
+      // Use default bicycle logo
+      drawBicycleLogo(35, y, 10);
+    }
     
     // Output the PDF
     const pdfBuffer = Buffer.from(await doc.output('arraybuffer'));

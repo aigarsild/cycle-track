@@ -14,6 +14,7 @@ export default function ReceiptPreview() {
     let shopPhone = searchParams.get('shopPhone');
     let shopEmail = searchParams.get('shopEmail');
     let shopAddress = searchParams.get('shopAddress');
+    let logo = searchParams.get('logo');
     
     // If not in URL, try to get from localStorage
     if (!shopName || !shopPhone || !shopEmail || !shopAddress) {
@@ -25,6 +26,7 @@ export default function ReceiptPreview() {
           shopPhone = shopPhone || settings.shopPhone;
           shopEmail = shopEmail || settings.shopEmail;
           shopAddress = shopAddress || settings.shopAddress;
+          logo = logo || settings.logo;
         }
       } catch (e) {
         console.error('Error parsing saved settings:', e);
@@ -38,7 +40,7 @@ export default function ReceiptPreview() {
     shopAddress = shopAddress || 'Vae 3a, Laagri, Saue vald';
     
     // Build receipt URL with all parameters
-    const receiptUrl = '/api/receipt/custom?' + new URLSearchParams({
+    const params = new URLSearchParams({
       id: 'SR-042684',
       customerName: 'Aigar Sild',
       equipmentBrand: 'Gt chucker',
@@ -51,7 +53,14 @@ export default function ReceiptPreview() {
       shopPhone,
       shopEmail,
       shopAddress
-    }).toString();
+    });
+    
+    // Add logo if available
+    if (logo) {
+      params.append('logo', logo);
+    }
+    
+    const receiptUrl = '/api/receipt/custom?' + params.toString();
     
     // Open the receipt in a new tab
     window.open(receiptUrl, '_blank');
