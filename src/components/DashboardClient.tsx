@@ -49,116 +49,148 @@ export default function DashboardClient({ serverUser }: DashboardClientProps) {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-        <h1 className="text-2xl font-bold mb-2 sm:mb-0">Service Dashboard</h1>
-        <div>
-          <label htmlFor="time-range" className="block text-sm font-medium text-gray-700 mb-1">
-            Time Range
-          </label>
-          <select
-            id="time-range"
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="bg-white border border-gray-300 rounded-md py-2 px-3 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="1">Last 24 Hours</option>
-            <option value="7">Last 7 Days</option>
-            <option value="30">Last 30 Days</option>
-            <option value="90">Last 3 Months</option>
-            <option value="365">Last Year</option>
-          </select>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      
+      <div className="mb-6">
+        <div className="bg-white shadow rounded-lg p-4 mb-4">
+          <h2 className="text-xl font-semibold mb-2">Welcome, {serverUser.email}</h2>
+          <p className="text-gray-600">
+            {serverUser.user_metadata?.role === 'admin' ? 'Administrator Account' : 'User Account'}
+          </p>
+        </div>
+        
+        <div className="bg-white shadow rounded-lg p-4 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Time Range</h2>
+            <div className="flex space-x-2">
+              {['Last 24 Hours', 'Last 7 Days', 'Last 30 Days', 'Last 3 Months', 'Last Year'].map((range) => (
+                <button
+                  key={range}
+                  className={`px-3 py-1 rounded text-sm ${
+                    timeRange === range 
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  onClick={() => setTimeRange(range)}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* User Auth Info */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Welcome, {serverUser.email}</h2>
-          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Authenticated</span>
-        </div>
-        <p className="text-sm text-gray-600 mb-4">
-          You&apos;re logged in using Supabase Authentication. Your account has access to all of the shop management features.
-        </p>
-        <div className="bg-gray-50 p-3 rounded text-sm">
-          <p className="mb-1"><span className="font-medium">User ID:</span> {serverUser.id}</p>
-          <p><span className="font-medium">Account Created:</span> {serverUser.created_at ? new Date(serverUser.created_at).toLocaleString() : 'N/A'}</p>
-        </div>
-      </div>
-
+      
       {loading ? (
-        <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="mt-2 text-gray-600">Loading dashboard data...</p>
         </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
-          {error}
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+          <p className="font-bold">Error</p>
+          <p>{error}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Service Status Cards */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Service Status</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-100 p-4 rounded">
-                <p className="text-sm text-gray-500 mb-1">Waiting in Line</p>
-                <p className="text-2xl font-bold">{stats.todoCount}</p>
-              </div>
-              <div className="bg-gray-100 p-4 rounded">
-                <p className="text-sm text-gray-500 mb-1">In Progress</p>
-                <p className="text-2xl font-bold">{stats.inProgressCount}</p>
-              </div>
-              <div className="bg-gray-100 p-4 rounded">
-                <p className="text-sm text-gray-500 mb-1">Waiting for Parts</p>
-                <p className="text-2xl font-bold">{stats.waitingForPartsCount}</p>
-              </div>
-              <div className="bg-green-100 p-4 rounded">
-                <p className="text-sm text-gray-500 mb-1">Completed</p>
-                <p className="text-2xl font-bold">{stats.doneCount}</p>
-              </div>
-              <div className="bg-gray-100 p-4 rounded">
-                <p className="text-sm text-gray-500 mb-1">Archived</p>
-                <p className="text-2xl font-bold">{stats.archivedCount}</p>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {/* Service Status Cards */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Service Status</h3>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Waiting in Line</span>
+                  <span className="font-bold text-yellow-500">{stats?.todoCount || 0}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">In Progress</span>
+                  <span className="font-bold text-blue-500">{stats?.inProgressCount || 0}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Waiting for Parts</span>
+                  <span className="font-bold text-purple-500">{stats?.waitingForPartsCount || 0}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Completed</span>
+                  <span className="font-bold text-green-500">{stats?.doneCount || 0}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Archived</span>
+                  <span className="font-bold text-gray-500">{stats?.archivedCount || 0}</span>
+                </div>
               </div>
             </div>
-            <div className="mt-6">
-              <h3 className="text-md font-medium mb-2">Overview</h3>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-blue-600 h-2.5 rounded-full" 
-                  style={{ 
-                    width: `${Math.min(100, (stats.doneCount / (stats.todoCount + stats.inProgressCount + stats.waitingForPartsCount + stats.doneCount || 1)) * 100)}%` 
-                  }}
-                ></div>
+            
+            {/* Financial Insights */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Financial Insights</h3>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Total Revenue</span>
+                  <span className="font-bold text-green-600">€{stats?.totalRevenue?.toFixed(2) || '0.00'}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Estimated Pipeline</span>
+                  <span className="font-bold text-blue-600">€{stats?.estimatedRevenue?.toFixed(2) || '0.00'}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>In Progress: {stats.todoCount + stats.inProgressCount + stats.waitingForPartsCount}</span>
-                <span>Completed: {stats.doneCount}</span>
+            </div>
+            
+            {/* Account Settings */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Settings</h3>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Account Settings</span>
+                  <a 
+                    href="/account" 
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    Configure
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </a>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Receipt Settings</span>
+                  <a 
+                    href="/account#receipt" 
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    Configure
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </a>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Receipt Preview</span>
+                  <a 
+                    href="/receipt-preview" 
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    View
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Financial Insights */}
-          <div className="bg-white p-6 rounded-lg shadow h-full">
-            <h2 className="text-lg font-semibold mb-4">Financial Insights</h2>
-            <div className="mt-4">
-              <p className="text-sm font-medium">Total Revenue (Completed Services)</p>
-              <p className="text-2xl font-bold text-blue-600 mb-4">
-                ${stats.totalRevenue.toFixed(2)}
-              </p>
-              <div className="border-t my-4"></div>
-              <p className="text-sm font-medium">Estimated Revenue (Pending Services)</p>
-              <p className="text-2xl font-bold text-purple-600">
-                ${stats.estimatedRevenue.toFixed(2)}
-              </p>
-              <div className="border-t my-4"></div>
-              <p className="text-sm font-medium">Potential Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">
-                ${(stats.totalRevenue + stats.estimatedRevenue).toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </div>
+        </>
       )}
     </div>
   )

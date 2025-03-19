@@ -8,6 +8,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id') || 'SR-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     
+    // Get shop settings from query parameters or use defaults
+    const shopName = searchParams.get('shopName') || 'Kauplus Rattapood';
+    const shopPhone = searchParams.get('shopPhone') || '56 86 17 63';
+    const shopEmail = searchParams.get('shopEmail') || 'tere@kauplusrattapood.ee';
+    const shopAddress = searchParams.get('shopAddress') || 'Vae 3a, Laagri, Saue vald';
+    
     // Create a PDF with 80mm width
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -49,14 +55,19 @@ export async function GET(request: NextRequest) {
     // Header with bicycle logo
     drawBicycleLogo(25, y, 10);
     
+    // Split shop name into two parts if it contains a space
+    let shopNameParts = shopName.split(' ');
+    let firstPart = shopNameParts[0] || '';
+    let secondPart = shopNameParts.slice(1).join(' ') || '';
+    
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Kauplus', 40, y - 5);
-    doc.text('Rattapood', 40, y + 5);
+    doc.text(firstPart, 40, y - 5);
+    doc.text(secondPart, 40, y + 5);
     y += 15;
     
     // Date and receipt ID
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     // Get current date in the format "Fri, jan 17, 2025, 00:26:31"
     const now = new Date();
@@ -95,19 +106,26 @@ export async function GET(request: NextRequest) {
     ];
     
     // Add fields with right-aligned values
-    doc.setFontSize(10);
+    doc.setFontSize(12); // Increased font size
     for (const field of fields) {
+      doc.setFont('helvetica', 'normal');
       doc.text(field.label, 5, y);
+      
+      doc.setFont('helvetica', 'bold'); // Make the value bold
       doc.text(field.value, 75, y, { align: 'right' });
-      y += 7;
+      y += 8; // Increased spacing between lines
+      
       doc.setDrawColor(220, 220, 220);
-      doc.line(5, y - 2, 75, y - 2);
+      doc.line(5, y - 3, 75, y - 3);
     }
     
     // Add details field
     y += 3;
+    doc.setFont('helvetica', 'normal');
     doc.text('Details:', 5, y);
     y += 7;
+    
+    doc.setFont('helvetica', 'bold'); // Details value is bold
     doc.text(details, 5, y);
     y += 15;
     
@@ -117,17 +135,18 @@ export async function GET(request: NextRequest) {
     y += 10;
     
     // Footer
-    doc.setFontSize(10);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
     doc.text('Shop', 40, y, { align: 'center' });
     y += 7;
     
-    doc.text('56 86 17 63', 40, y, { align: 'center' });
+    doc.text(shopPhone, 40, y, { align: 'center' });
     y += 7;
     
-    doc.text('tere@kauplusrattapood.ee', 40, y, { align: 'center' });
+    doc.text(shopEmail, 40, y, { align: 'center' });
     y += 7;
     
-    doc.text('Vae 3a, Laagri, Saue vald', 40, y, { align: 'center' });
+    doc.text(shopAddress, 40, y, { align: 'center' });
     y += 15;
     
     // Bicycle logo at bottom

@@ -44,6 +44,9 @@ export default function RootLayout({
                     <a href="/customers" className="hover:text-blue-light transition-colors">
                       Customers
                     </a>
+                    <a href="/account" className="hover:text-blue-light transition-colors">
+                      Account
+                    </a>
                   </nav>
                   
                   <SignOutButton />
