@@ -12,8 +12,12 @@ export default function DebugAuth() {
   const [directSession, setDirectSession] = useState<any>(null);
   const [directError, setDirectError] = useState<string | null>(null);
   const [fixAttempted, setFixAttempted] = useState(false);
+  const [cookieString, setCookieString] = useState<string>('');
 
   useEffect(() => {
+    // Set the cookie string
+    setCookieString(document.cookie || 'No cookies found');
+
     // Check auth state directly with Supabase client
     const checkSupabase = async () => {
       try {
@@ -160,7 +164,7 @@ export default function DebugAuth() {
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <h2 className="text-xl font-semibold mb-4">Cookies</h2>
         <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto max-h-40">
-          {document.cookie || 'No cookies found'}
+          {cookieString}
         </pre>
       </div>
 
