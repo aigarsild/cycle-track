@@ -102,7 +102,7 @@ export default function DebugAuth() {
       {fixAttempted && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
           <p className="font-bold">Operation completed!</p>
-          <p>The page will reload shortly. If it doesn't, <button onClick={() => window.location.reload()} className="underline">click here</button>.</p>
+          <p>The page will reload shortly. If it doesn&apos;t, <button onClick={() => window.location.reload()} className="underline">click here</button>.</p>
         </div>
       )}
       
@@ -196,7 +196,7 @@ export default function DebugAuth() {
       
       <div className="bg-gray-100 p-4 rounded-lg text-sm">
         <p>This page helps debug authentication issues by showing the current state of authentication from different sources.</p>
-        <p className="mt-2">If you're experiencing problems, try clicking "Clear All Auth Data" and then log in again.</p>
+        <p className="mt-2">If you&apos;re experiencing problems, try clicking &quot;Clear All Auth Data&quot; and then log in again.</p>
       </div>
     </div>
   );

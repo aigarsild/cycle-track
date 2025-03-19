@@ -78,7 +78,7 @@ export default function DashboardClient({ serverUser }: DashboardClientProps) {
           <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Authenticated</span>
         </div>
         <p className="text-sm text-gray-600 mb-4">
-          You're logged in using Supabase Authentication. Your account has access to all of the shop management features.
+          You&apos;re logged in using Supabase Authentication. Your account has access to all of the shop management features.
         </p>
         <div className="bg-gray-50 p-3 rounded text-sm">
           <p className="mb-1"><span className="font-medium">User ID:</span> {serverUser.id}</p>
