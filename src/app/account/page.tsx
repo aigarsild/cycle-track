@@ -18,43 +18,64 @@ export default function AccountSettings() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Load saved settings from localStorage on component mount
+  // Load settings from API on component mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('shopSettings');
-    if (savedSettings) {
+    const fetchSettings = async () => {
       try {
-        const settings = JSON.parse(savedSettings);
-        setShopName(settings.shopName || 'Kauplus Rattapood');
-        setShopPhone(settings.shopPhone || '56 86 17 63');
-        setShopEmail(settings.shopEmail || 'tere@kauplusrattapood.ee');
-        setShopAddress(settings.shopAddress || 'Vae 3a, Laagri, Saue vald');
-        setLogo(settings.logo || null);
-      } catch (e) {
-        console.error('Error parsing saved settings:', e);
+        setIsLoading(true);
+        const response = await fetch('/api/settings');
+        if (!response.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+        
+        const data = await response.json();
+        
+        if (data) {
+          setShopName(data.shop_name || 'Kauplus Rattapood');
+          setShopPhone(data.shop_phone || '56 86 17 63');
+          setShopEmail(data.shop_email || 'tere@kauplusrattapood.ee');
+          setShopAddress(data.shop_address || 'Vae 3a, Laagri, Saue vald');
+          setLogo(data.logo || null);
+        }
+      } catch (err) {
+        console.error('Error loading settings:', err);
+        setError('Failed to load settings. Using defaults.');
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    
+    fetchSettings();
   }, []);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Save to localStorage
-      const settings = {
-        shopName,
-        shopPhone,
-        shopEmail,
-        shopAddress,
-        logo
-      };
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          shopName,
+          shopPhone,
+          shopEmail,
+          shopAddress,
+          logo
+        })
+      });
       
-      localStorage.setItem('shopSettings', JSON.stringify(settings));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save settings');
+      }
       
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
-    } catch (e) {
-      setError('Failed to save settings. Please try again.');
+    } catch (e: any) {
+      setError(`Failed to save settings: ${e.message}`);
       console.error('Error saving settings:', e);
     } finally {
       setIsLoading(false);
@@ -94,23 +115,7 @@ export default function AccountSettings() {
   };
   
   const previewReceipt = () => {
-    // Build URL with current settings
-    const params = new URLSearchParams({
-      shopName,
-      shopPhone,
-      shopEmail,
-      shopAddress
-    });
-    
-    // Add logo if available
-    if (logo) {
-      params.append('logo', logo);
-    }
-    
-    const url = `/receipt-preview?${params.toString()}`;
-    
-    // Use window.location instead of router.push for string URLs
-    window.location.href = url;
+    window.open(`/api/receipt/custom?preview=true`, '_blank');
   };
   
   return (
@@ -225,6 +230,7 @@ export default function AccountSettings() {
                   alt="Shop Logo"
                   fill
                   style={{ objectFit: 'contain' }}
+                  sizes="160px"
                 />
               </div>
               <button 

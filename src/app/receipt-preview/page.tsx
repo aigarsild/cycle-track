@@ -1,72 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 export default function ReceiptPreview() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
   
   useEffect(() => {
-    // Get shop settings from query parameters or localStorage
-    let shopName = searchParams.get('shopName');
-    let shopPhone = searchParams.get('shopPhone');
-    let shopEmail = searchParams.get('shopEmail');
-    let shopAddress = searchParams.get('shopAddress');
-    let logo = searchParams.get('logo');
-    
-    // If not in URL, try to get from localStorage
-    if (!shopName || !shopPhone || !shopEmail || !shopAddress) {
-      try {
-        const savedSettings = localStorage.getItem('shopSettings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          shopName = shopName || settings.shopName;
-          shopPhone = shopPhone || settings.shopPhone;
-          shopEmail = shopEmail || settings.shopEmail;
-          shopAddress = shopAddress || settings.shopAddress;
-          logo = logo || settings.logo;
-        }
-      } catch (e) {
-        console.error('Error parsing saved settings:', e);
-      }
-    }
-    
-    // Default values if still not set
-    shopName = shopName || 'Kauplus Rattapood';
-    shopPhone = shopPhone || '56 86 17 63';
-    shopEmail = shopEmail || 'tere@kauplusrattapood.ee';
-    shopAddress = shopAddress || 'Vae 3a, Laagri, Saue vald';
-    
-    // Build receipt URL with all parameters
-    const params = new URLSearchParams({
-      id: 'SR-042684',
-      customerName: 'Aigar Sild',
-      equipmentBrand: 'Gt chucker',
-      customerPhone: '56 86 17 63',
-      customerEmail: 'Aigarsild@gmail.com',
-      serviceType: 'Täishooldus',
-      mechanic: 'Aigar',
-      details: 'tere',
-      shopName,
-      shopPhone,
-      shopEmail,
-      shopAddress
-    });
-    
-    // Add logo if available
-    if (logo) {
-      params.append('logo', logo);
-    }
-    
-    const receiptUrl = '/api/receipt/custom?' + params.toString();
-    
     // Open the receipt in a new tab
-    window.open(receiptUrl, '_blank');
-    
+    window.open('/api/receipt/custom?preview=true', '_blank');
     setIsLoading(false);
-  }, [searchParams]);
+  }, []);
   
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -82,7 +26,7 @@ export default function ReceiptPreview() {
         <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
           <p>The receipt has been opened in a new tab.</p>
           <p className="mt-2">If it didn&apos;t open, <a 
-            href={`/api/receipt/custom?id=SR-042684&customerName=Aigar%20Sild&equipmentBrand=Gt%20chucker&customerPhone=56%2086%2017%2063&customerEmail=Aigarsild@gmail.com&serviceType=T%C3%A4ishooldus&mechanic=Aigar&details=tere`}
+            href="/api/receipt/custom?preview=true"
             target="_blank"
             className="underline font-medium"
           >
@@ -93,16 +37,8 @@ export default function ReceiptPreview() {
       
       <div className="mt-8 p-4 bg-gray-100 rounded-lg">
         <h2 className="text-lg font-semibold mb-2">Receipt Details</h2>
-        <ul className="space-y-2">
-          <li><strong>ID:</strong> SR-042684</li>
-          <li><strong>Name:</strong> Aigar Sild</li>
-          <li><strong>Bike:</strong> Gt chucker</li>
-          <li><strong>Phone:</strong> 56 86 17 63</li>
-          <li><strong>Email:</strong> Aigarsild@gmail.com</li>
-          <li><strong>Service type:</strong> Täishooldus</li>
-          <li><strong>Worker:</strong> Aigar</li>
-          <li><strong>Details:</strong> tere</li>
-        </ul>
+        <p>The receipt will show your latest shop settings and sample customer data.</p>
+        <p className="mt-4">Your shop information and logo are saved in the database and will be displayed on all receipts.</p>
       </div>
       
       <div className="mt-6">

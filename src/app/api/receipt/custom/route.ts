@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jsPDF } from 'jspdf';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,13 +9,29 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id') || 'SR-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const isPreview = searchParams.get('preview') === 'true';
     
-    // Get shop settings from query parameters or use defaults
-    const shopName = searchParams.get('shopName') || 'Kauplus Rattapood';
-    const shopPhone = searchParams.get('shopPhone') || '56 86 17 63';
-    const shopEmail = searchParams.get('shopEmail') || 'tere@kauplusrattapood.ee';
-    const shopAddress = searchParams.get('shopAddress') || 'Vae 3a, Laagri, Saue vald';
-    const customLogo = searchParams.get('logo');
+    // Initialize Supabase client
+    const supabase = createRouteHandlerClient({ cookies });
+    
+    // Fetch shop settings from database
+    const { data: shopSettings, error: settingsError } = await supabase
+      .from('shop_settings')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (settingsError) {
+      console.error('Error fetching shop settings:', settingsError);
+    }
+    
+    // Use shop settings from database or defaults
+    const shopName = shopSettings?.shop_name || 'Kauplus Rattapood';
+    const shopPhone = shopSettings?.shop_phone || '56 86 17 63';
+    const shopEmail = shopSettings?.shop_email || 'tere@kauplusrattapood.ee';
+    const shopAddress = shopSettings?.shop_address || 'Vae 3a, Laagri, Saue vald';
+    const customLogo = shopSettings?.logo || null;
     
     // Create a PDF with 80mm width
     const doc = new jsPDF({
@@ -99,7 +117,7 @@ export async function GET(request: NextRequest) {
     doc.line(5, y, 75, y);
     y += 10;
     
-    // Customer info
+    // Use either URL parameters or sample data for customer info
     const customerName = searchParams.get('customerName') || 'Aigar Sild';
     const bikeBrand = searchParams.get('equipmentBrand') || 'Gt chucker';
     const customerPhone = searchParams.get('customerPhone') || '56 86 17 63';
