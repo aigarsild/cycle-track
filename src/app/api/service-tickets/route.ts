@@ -2,6 +2,8 @@ import { supabase, ensureDatabaseSchema } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import type { ServiceTicket } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 // Fallback data for development if database isn't accessible
 const mockServiceTickets: ServiceTicket[] = [
   {
