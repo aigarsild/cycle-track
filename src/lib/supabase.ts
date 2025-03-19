@@ -4,11 +4,22 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url-for-development.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key-for-development';
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key Length:', supabaseAnonKey ? supabaseAnonKey.length : 0);
+
 // The createClient function will create a Supabase client even with invalid credentials,
 // but API calls will fail, which we handle in our API routes with fallback data
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false, // Changed to false to prevent URL parsing issues
+    storageKey: 'cycle-track-auth', // Custom storage key
+    debug: true // Enable debug mode for auth
+  }
+});
 
-// This function checks if we have valid credentials
+// Check if Supabase is properly configured with valid credentials
 export const isSupabaseConfigured = () => {
   return (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -16,6 +27,25 @@ export const isSupabaseConfigured = () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 10
   );
+};
+
+// Expose a helper to check the auth state for debugging
+export const checkAuth = async () => {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Error getting session:', error);
+      return { session: null, user: null, error };
+    }
+    return {
+      session: data.session,
+      user: data.session?.user || null,
+      error: null
+    };
+  } catch (err) {
+    console.error('Unexpected error checking auth:', err);
+    return { session: null, user: null, error: err };
+  }
 };
 
 // Function to verify and ensure the correct database schema

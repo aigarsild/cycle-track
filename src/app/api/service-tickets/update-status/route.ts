@@ -40,6 +40,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.log(`Setting updated_at to ${dbUpdates.updated_at} for done status`);
     }
     
+    // Handle status change comment if provided
+    if (updates.newComment) {
+      // First, fetch the current ticket with comments
+      const { data: ticket, error: fetchError } = await supabase
+        .from('service_tickets')
+        .select('comments')
+        .eq('id', ticketId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching ticket comments:', fetchError);
+        return NextResponse.json({ error: fetchError.message }, { status: 500 });
+      }
+
+      // Prepare the updated comments array
+      const currentComments = ticket.comments || [];
+      dbUpdates.comments = [...currentComments, updates.newComment];
+    }
+    
     // Log the update operation
     console.log(`Updating ticket ${ticketId} with:`, dbUpdates);
     
