@@ -138,9 +138,6 @@ export async function GET(request: NextRequest) {
       doc.setFont('helvetica', 'bold'); // Make the value bold
       doc.text(field.value, 80 - sidePadding, y, { align: 'right' });
       y += 10; // More spacing between lines
-      
-      doc.setDrawColor(220, 220, 220);
-      doc.line(sidePadding, y - 4, 80 - sidePadding, y - 4);
     }
     
     // Add details field
