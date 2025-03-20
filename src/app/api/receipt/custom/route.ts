@@ -68,10 +68,12 @@ export async function GET(request: NextRequest) {
       doc.line(x + 2 * scale, y - 5 * scale, x + 4 * scale, y - 5 * scale);
     };
     
-    // Set initial position
+    // Set initial position and consistent padding
+    const sidePadding = 5;
+    const contentWidth = 70; // 80mm - 2*sidePadding
     let y = 15;
     
-    // Add header with logo
+    // Add header with logo only
     if (customLogo) {
       try {
         // Add custom logo from base64 string
@@ -79,23 +81,14 @@ export async function GET(request: NextRequest) {
       } catch (err) {
         console.error('Error adding custom logo to PDF:', err);
         // Fallback to bicycle logo if custom logo fails
-        drawBicycleLogo(25, y, 10);
+        drawBicycleLogo(40, y, 12);
       }
     } else {
       // Use default bicycle logo
-      drawBicycleLogo(25, y, 10);
+      drawBicycleLogo(40, y, 12);
     }
     
-    // Split shop name into two parts if it contains a space
-    let shopNameParts = shopName.split(' ');
-    let firstPart = shopNameParts[0] || '';
-    let secondPart = shopNameParts.slice(1).join(' ') || '';
-    
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(firstPart, 40, y - 5);
-    doc.text(secondPart, 40, y + 5);
-    y += 15;
+    y += 20; // Space after logo
     
     // Date and receipt ID
     doc.setFontSize(11);
@@ -109,13 +102,13 @@ export async function GET(request: NextRequest) {
     doc.text(formattedDate, 40, y, { align: 'center' });
     y += 7;
     
-    doc.text(`Reciept: ${id}`, 40, y, { align: 'center' });
-    y += 10;
+    doc.text(`Receipt: ${id}`, 40, y, { align: 'center' });
+    y += 12;
     
     // Add horizontal line
     doc.setDrawColor(0, 0, 0);
-    doc.line(5, y, 75, y);
-    y += 10;
+    doc.line(sidePadding, y, 80 - sidePadding, y);
+    y += 12;
     
     // Use either URL parameters or sample data for customer info
     const customerName = searchParams.get('customerName') || 'Aigar Sild';
@@ -137,39 +130,42 @@ export async function GET(request: NextRequest) {
     ];
     
     // Add fields with right-aligned values
-    doc.setFontSize(12); // Increased font size
+    doc.setFontSize(12); // Consistent font size
     for (const field of fields) {
       doc.setFont('helvetica', 'normal');
-      doc.text(field.label, 5, y);
+      doc.text(field.label, sidePadding, y);
       
       doc.setFont('helvetica', 'bold'); // Make the value bold
-      doc.text(field.value, 75, y, { align: 'right' });
-      y += 8; // Increased spacing between lines
+      doc.text(field.value, 80 - sidePadding, y, { align: 'right' });
+      y += 10; // More spacing between lines
       
       doc.setDrawColor(220, 220, 220);
-      doc.line(5, y - 3, 75, y - 3);
+      doc.line(sidePadding, y - 4, 80 - sidePadding, y - 4);
     }
     
     // Add details field
-    y += 3;
+    y += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text('Details:', 5, y);
+    doc.text('Details:', sidePadding, y);
     y += 7;
     
     doc.setFont('helvetica', 'bold'); // Details value is bold
-    doc.text(details, 5, y);
+    doc.text(details, sidePadding, y);
     y += 15;
     
     // Add bottom horizontal line
     doc.setDrawColor(0, 0, 0);
-    doc.line(5, y, 75, y);
-    y += 10;
+    doc.line(sidePadding, y, 80 - sidePadding, y);
+    y += 12;
     
-    // Footer
+    // Footer with shop info
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(shopName, 40, y, { align: 'center' });
+    y += 8;
+    
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text('Shop', 40, y, { align: 'center' });
-    y += 7;
     
     doc.text(shopPhone, 40, y, { align: 'center' });
     y += 7;
@@ -187,11 +183,11 @@ export async function GET(request: NextRequest) {
         doc.addImage(customLogo, 'JPEG', 30, y - 5, 20, 20);
       } catch (err) {
         // Fallback to bicycle logo if custom logo fails
-        drawBicycleLogo(35, y, 10);
+        drawBicycleLogo(40, y, 10);
       }
     } else {
       // Use default bicycle logo
-      drawBicycleLogo(35, y, 10);
+      drawBicycleLogo(40, y, 10);
     }
     
     // Output the PDF
