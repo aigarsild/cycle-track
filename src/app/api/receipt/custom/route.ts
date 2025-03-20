@@ -171,21 +171,6 @@ export async function GET(request: NextRequest) {
     y += 7;
     
     doc.text(shopAddress, 40, y, { align: 'center' });
-    y += 15;
-    
-    // Footer logo
-    if (customLogo) {
-      try {
-        // Add custom logo from base64 string
-        doc.addImage(customLogo, 'JPEG', 30, y - 5, 20, 20);
-      } catch (err) {
-        // Fallback to bicycle logo if custom logo fails
-        drawBicycleLogo(40, y, 10);
-      }
-    } else {
-      // Use default bicycle logo
-      drawBicycleLogo(40, y, 10);
-    }
     
     // Output the PDF
     const pdfBuffer = Buffer.from(await doc.output('arraybuffer'));
